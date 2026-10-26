@@ -8,6 +8,7 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 		const { useState, useEffect, useCallback, useRef, Component } = react;
 
 		const name = "dsh-purge";
+		const PRESERVE_OFFICIAL_HOST = true;
 		const inject = ["slots", "locale", "uiConversation"];
 		const NS = "settings.dsh-purge";
 		let translate = (key) => key;
@@ -175,6 +176,7 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 			"purge.title": "补丁",
 			"override.title": "提示词",
 			"own.title": "目标范围",
+			"compatibility.hint": "官方权限兼容版：保留 DSH 的访问模式、沙箱和审批。此版本不应用或还原官方文件补丁，也不自动更新到上游版本。重启请使用 DSH 正常退出和打开；恢复请使用安装时的备份。",
 			"own.hint": "本分支已移除插件额外的任务关键词、目标地址和工具参数拦截，不再要求登记放行名单。执行仍需遵守你已授权的目标与操作范围。",
 			"metric.purged": "已写入",
 			"metric.purged.skip": "已写入。跳过 {n} 项，本机没有这些文件",
@@ -516,6 +518,7 @@ window.__ModuleLoader__.load({ id: "dsh-purge", factory: (require) => {
 			"purge.title": "Patches",
 			"override.title": "Prompt",
 			"own.title": "Target scope",
+			"compatibility.hint": "Official-permissions build: DSH access modes, sandboxing and approvals remain in control. Host patching, host rollback and upstream self-update are disabled. Restart DSH normally; use the installation backup to restore the previous setup.",
 			"own.hint": "This branch removes the plugin's extra task-keyword, target-address, and tool-argument gates. No allowlist registration is required. Execution must remain within your authorized targets and operations.",
 			"metric.purged": "Written",
 			"metric.purged.skip": "Written. Skipped {n}; those files are not on this install",
@@ -1937,13 +1940,13 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 						h("b", { className: "dshp-now-ver" }, localVer ? "v" + localVer : "—"),
 						h("em", { className: "dshp-now-mark" }, t("update.current")),
 					),
-					h("div", { className: "dshp-editions" },
+					PRESERVE_OFFICIAL_HOST ? null : h("div", { className: "dshp-editions" },
 						renderEdition("stable"),
 						renderEdition("beta"),
 					),
 					noticeNode(updateNotice),
 				),
-				s ? h("div", { className: "dshp-metrics" },
+				PRESERVE_OFFICIAL_HOST ? h("p", { className: "dshp-hint", role: "status" }, t("compatibility.hint")) : s ? h("div", { className: "dshp-metrics" },
 					h("div", { className: "dshp-metric" },
 						h("b", null, located ? (applied + " / " + total) : (patchesLost ? t("metric.lost.count") : (sealedReady ? t("metric.sealed.count") : t("metric.unlocated.count")))),
 						h("span", null, !located ? (patchesLost ? t("metric.lost") : (sealedReady ? t("metric.sealed") : t("metric.unlocated"))) : (metricNotes.length ? metricNotes.join(" · ") : t("metric.purged"))),
@@ -1967,10 +1970,10 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 					h("div", { className: "dshp-metric" }, h("div", { className: "dshp-skel" }), h("div", { className: "dshp-skel", style: { width: "40%" } })),
 					h("div", { className: "dshp-metric" }, h("div", { className: "dshp-skel" }), h("div", { className: "dshp-skel", style: { width: "40%" } })),
 				),
-				h("div", { className: "dshp-bar", "aria-hidden": "true" }, h("i", { style: { width: pct + "%" } })),
-				h(PatchGroups, { state: s }),
-				h(HooksDenySection, { onSaved: loadAll }),
-				h("div", { className: "dshp-row", style: { marginTop: 14 } },
+				PRESERVE_OFFICIAL_HOST ? null : h("div", { className: "dshp-bar", "aria-hidden": "true" }, h("i", { style: { width: pct + "%" } })),
+				PRESERVE_OFFICIAL_HOST ? null : h(PatchGroups, { state: s }),
+				PRESERVE_OFFICIAL_HOST ? null : h(HooksDenySection, { onSaved: loadAll }),
+				PRESERVE_OFFICIAL_HOST ? noticeNode(notice) : h("div", { className: "dshp-row", style: { marginTop: 14 } },
 					h(Btn, { kind: "primary", disabled: patchBusy || uninstallBusy || !overrideLoaded, onClick: () => doAction("apply", "action.apply") }, patchBusy ? t("btn.apply.busy") : t("btn.apply")),
 					h(Btn, { kind: "danger", disabled: patchBusy || uninstallBusy, onClick: () => doAction("revert", "action.revert") }, t("btn.revert")),
 					h(Btn, { kind: "solid-danger", disabled: patchBusy || uninstallBusy, onClick: () => setAskUninstall(true) }, uninstallBusy ? t("btn.uninstall.busy") : t("btn.uninstall")),
@@ -1992,8 +1995,8 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 						),
 					),
 				) : null,
-				h("p", { className: "dshp-hint", style: { margin: "8px 0 0", color: "var(--dshp-mute)", fontSize: 12 } }, t("apply.hint")),
-				s && !s.ai_base ? h("p", { className: "dshp-hint", style: { margin: "8px 0 0", color: "var(--dshp-danger, #c44)", fontSize: 12 } }, hostText(t, "warn.noRoot", hostSurface)) : null,
+				PRESERVE_OFFICIAL_HOST ? null : h("p", { className: "dshp-hint", style: { margin: "8px 0 0", color: "var(--dshp-mute)", fontSize: 12 } }, t("apply.hint")),
+				!PRESERVE_OFFICIAL_HOST && s && !s.ai_base ? h("p", { className: "dshp-hint", style: { margin: "8px 0 0", color: "var(--dshp-danger, #c44)", fontSize: 12 } }, hostText(t, "warn.noRoot", hostSurface)) : null,
 				s && s.ai_base && s.override_status === "missing" ? h("p", { className: "dshp-hint", style: { margin: "8px 0 0", color: "var(--dshp-mute)", fontSize: 12 } }, t("warn.noInject")) : null,
 				askRestart ? h(RestartAsk, {
 					t: t,

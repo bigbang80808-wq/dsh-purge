@@ -38,3 +38,21 @@ The identity tests separately execute the real `identity.js` and its pure prompt
 dependencies. They preserve legacy prompt deduplication and ordinary custom text.
 When comparing the upstream snapshot, only its already-empty `ownServerNote`
 export is substituted to avoid importing client/filesystem dependencies.
+
+Session permission tests use notification/broadcast semantics: every registered
+`session/created` handler runs, followed by a microtask drain. These handlers do
+not call middleware `next()`. The permission service implements `permissionState`
+and `set` in memory; tests reject any automatic permission change, including for
+unset presets, and preserve user-selected and subagent permissions. The harness
+rejects using middleware dispatch for this broadcast event.
+
+Official-host entry-point tests call the registered HTTP handlers and tools, plus
+the real command and startup functions exposed only inside the VM. The policy
+module is loaded from the source tree, not substituted. Recorded host-operation
+calls must remain empty; requests must be rejected before their bodies are read.
+
+Core guard tests evaluate the actual `core.js` and compatibility policy with
+throwing filesystem, child-process, archive and desktop sentinels. Representative
+patch, revert, shim, extraction/restart and hooks-setting entry points must throw
+`OFFICIAL_HOST_READ_ONLY` before touching those boundaries. These sentinels also
+make baseline comparison safe: an unguarded original cannot access the real host.

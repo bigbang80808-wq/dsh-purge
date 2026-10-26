@@ -1,7 +1,7 @@
 {
   "name": "dsh-purge",
-  "version": "1.1.78",
-  "description": "DeepSeek Harness 破甲：让所有模型都能破甲，不同模型可换不同提示词；默认提示词面向国模「小码酱」。Jailbreak for every model — swap prompts per model. 求 Star 收藏 ⭐ 如要二开，请查看署名要求部分",
+  "version": "1.1.78-compat.1",
+  "description": "dsh-purge compatibility build preserving official DSH permissions, sandbox and approvals; based on YuJunZhiXue/dsh-purge.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -56,11 +56,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YuJunZhiXue/dsh-purge.git"
+    "url": "git+https://github.com/bigbang80808-wq/dsh-purge.git"
   },
-  "homepage": "https://github.com/YuJunZhiXue/dsh-purge#readme",
+  "homepage": "https://github.com/bigbang80808-wq/dsh-purge/tree/codex/preserve-official-permissions-20261027",
   "bugs": {
-    "url": "https://github.com/YuJunZhiXue/dsh-purge/issues"
+    "url": "https://github.com/bigbang80808-wq/dsh-purge/issues"
   },
   "dsh": {
     "bundle": {
@@ -79,9 +79,9 @@
     },
     "install": {
       "preferred": "tarball",
-      "tarball": "https://codeload.github.com/YuJunZhiXue/dsh-purge/tar.gz/refs/heads/master",
-      "zip": "https://codeload.github.com/YuJunZhiXue/dsh-purge/zip/refs/heads/master",
-      "git": "https://github.com/YuJunZhiXue/dsh-purge.git"
+      "tarball": "https://codeload.github.com/bigbang80808-wq/dsh-purge/tar.gz/refs/heads/codex/preserve-official-permissions-20261027",
+      "zip": "https://codeload.github.com/bigbang80808-wq/dsh-purge/zip/refs/heads/codex/preserve-official-permissions-20261027",
+      "git": "https://github.com/bigbang80808-wq/dsh-purge.git"
     }
   },
   "publishConfig": {
@@ -93,5 +93,12 @@
   "engines": {
     "node": ">=18"
   },
-  "dshTarget": "0.2.1-rc.2"
+  "dshTarget": "0.2.1-rc.3",
+  "compatibility": {
+    "mode": "official-permissions",
+    "baseCommit": "bde36403e909e4cf288e447de11f7a390c337480",
+    "buildId": "official-permissions-20261027",
+    "hostPatching": false,
+    "upstreamSelfUpdate": false
+  }
 }

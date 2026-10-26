@@ -16,6 +16,8 @@ export async function loadPlugin({ allowText = 'owned.example\n' } = {}) {
   const dnsCalls = [];
   const writes = [];
   const reads = [];
+  const hostEffects = [];
+  const hostEffect = (name, value) => (...args) => { hostEffects.push({ name, args }); return value; };
   const dns = { lookup: async (hostname) => {
     dnsCalls.push(hostname);
     if (hostname === 'missing.example') throw new Error('synthetic DNS failure');
@@ -52,10 +54,38 @@ export async function loadPlugin({ allowText = 'owned.example\n' } = {}) {
       findOverrideFile: () => '/synthetic/dsh/prompt-inject.md',
       syncPromptInjectOnDiskSync: noop, normalizeOverride: identity,
       defaultOverrideText: () => '', hangOperatorPrompt: noop, rememberCommittedOverride: noop,
+      applyRuntimeEnv: hostEffect('core.applyRuntimeEnv', {}),
+      clearDesktopLocateCache: hostEffect('core.clearDesktopLocateCache'),
+      sanitizeDesktopCommandRuntimes: hostEffect('core.sanitizeDesktopCommandRuntimes', []),
+      gatherState: hostEffect('core.gatherState', { ai_base: '/synthetic/official', dsh_home: '/synthetic/dsh', patches_pending: 1 }),
+      resolveOfficialAiBase: hostEffect('core.resolveOfficialAiBase', { aiBase: '/synthetic/official' }),
+      applyPatchesAllHosts: hostEffect('core.applyPatchesAllHosts', { report: [], hosts: [] }),
+      commitOverrideOnApply: hostEffect('core.commitOverrideOnApply'),
+      patchAllShims: hostEffect('core.patchAllShims', {}),
+      revertAll: hostEffect('core.revertAll', { reverted: [], errors: [] }),
+      revertAllShims: hostEffect('core.revertAllShims', {}),
+      rememberUnpackedArchive: hostEffect('core.rememberUnpackedArchive'),
+      refreshHooksDenySettings: hostEffect('core.refreshHooksDenySettings', { hooksDenyBypass: true }),
+      getHooksDenySettings: () => ({ hooksDenyBypass: true }),
+      setHooksDenySettings: hostEffect('core.setHooksDenySettings', { hooksDenyBypass: true }),
+      desktopAsarStillSealed: () => false,
+      ensureHostClean: hostEffect('core.ensureHostClean', { ok: true }),
+      silenceCmdFlash: hostEffect('core.silenceCmdFlash', { ok: true, entry: '/synthetic/official' }),
+      readOverrideForUi: () => ({ content: '', defaultContent: '' }),
     },
-    './host.js': { currentSurface: () => 'test' },
+    './host.js': { currentSurface: () => 'test', restartNote: () => 'synthetic restart', scheduleRestart: hostEffect('host.scheduleRestart', { restarting: true }) },
     './rules.js': { resolveInjectText: () => ({ text: '' }), writeLastCwd: noop },
-    './skills.js': {}, './update.js': {}, './reapply.js': {}, './official-update.js': {},
+    './skills.js': {},
+    './update.js': { autoUpdateIfNeeded: hostEffect('update.autoUpdateIfNeeded', Promise.resolve({})) },
+    './reapply.js': {
+      ensureInstalledRevSeed: hostEffect('reapply.ensureInstalledRevSeed'),
+      healEmptyAppliedStamp: hostEffect('reapply.healEmptyAppliedStamp', false),
+      patchesMatchInstallStrict: hostEffect('reapply.patchesMatchInstallStrict', false),
+      hostCleanEnoughToKeep: hostEffect('reapply.hostCleanEnoughToKeep', false),
+      markPatchesApplied: hostEffect('reapply.markPatchesApplied'),
+      reapplyInstalled: hostEffect('reapply.reapplyInstalled', { ok: true }),
+    },
+    './official-update.js': {},
     './identity.js': {
       GLOBAL_PROMPT_ORDER: 5000, adaptInjectForMinimalPreset: identity,
       isMnemonPluginMessage: () => false, isRedteamSession: () => false,
@@ -66,7 +96,11 @@ export async function loadPlugin({ allowText = 'owned.example\n' } = {}) {
     './redteam/role-section.js': { installSubagentRoleCapture: noop, resolveSubagentRoleText: () => '' },
     './rewind.js': { wrapSessionDeriveMessages: noop },
     './continue-retry.js': { loadSettings: () => ({}), installContinueRetry: () => ({ dispose: noop }), mergeConfig: identity },
-    './uninstall.js': {}, './drill-grant.js': { readDrillGrant: noop, writeDrillGrant: noop },
+    './uninstall.js': {
+      uninstallPurge: hostEffect('uninstall.uninstallPurge', { ok: true }),
+      scheduleCleanupRestart: hostEffect('uninstall.scheduleCleanupRestart'),
+    },
+    './drill-grant.js': { readDrillGrant: noop, writeDrillGrant: noop },
     './preset-default.js': {
       cancelClearOwnedSelectedDefault: noop, clearOwnedSelectedDefault: noop,
       removeStaleAgentPresetDir: noop, scheduleClearOwnedSelectedDefault: noop,
@@ -92,7 +126,7 @@ export async function loadPlugin({ allowText = 'owned.example\n' } = {}) {
         throw new Error(`Unstubbed external dependency: ${identifier}`);
       }
       let source = await readFile(identifier, 'utf8');
-      if (identifier === path.join(root, 'lib/index.js')) source += '\nexport { applyHostHooks as testApplyHostHooks };\n';
+      if (identifier === path.join(root, 'lib/index.js')) source += '\nexport { applyHostHooks as testApplyHostHooks, settleInstalledPatches as testSettleInstalledPatches, autoApply as testAutoApply, handlePurgeCommand as testHandlePurgeCommand };\n';
       module = new vm.SourceTextModule(source, {
         context, identifier,
         importModuleDynamically: () => { throw new Error('Host dynamic imports disabled in tests'); },
@@ -127,27 +161,41 @@ export async function loadPlugin({ allowText = 'owned.example\n' } = {}) {
   };
   entry.namespace.testApplyHostHooks(ctx, { enabled: true, stripMnemon: true, capabilityProtocol: false });
   async function dispatch(event, payload, terminal) {
+    if (event === 'session/created') throw new Error('session/created is a broadcast; use broadcast(), not middleware dispatch()');
     const handlers = hooks.get(event) ?? [];
     const run = (index) => index < handlers.length
       ? handlers[index].handler(payload, () => run(index + 1)) : terminal();
     return run(0);
   }
-  async function request(method, { content = '', bodyRead = noop } = {}) {
+  async function broadcast(event, payload) {
+    // Notification handlers do not call next(). Invoke every registered handler,
+    // then drain the microtasks used by session permission updates.
+    const handlers = [...(hooks.get(event) ?? [])];
+    await Promise.all(handlers.map(({ handler }) => handler(payload)));
+    await new Promise((resolve) => queueMicrotask(resolve));
+  }
+  async function request(method, { path: requestPath = '/dsh-purge/own-servers', content = '', bodyRead = noop } = {}) {
     const request = {
-      method, url: '/dsh-purge/own-servers', headers: {},
+      method, url: requestPath, headers: {},
       async *[Symbol.asyncIterator]() { bodyRead(); yield Buffer.from(content); },
     };
     let status;
     let body;
     let headers;
     const response = { writeHead: (code, values) => { status = code; headers = values; }, end: (text) => { body = text; } };
-    const handler = routes.get('/dsh-purge/own-servers');
-    if (!handler) throw new Error('Compatibility route was not registered');
+    const handler = routes.get(requestPath);
+    if (!handler) throw new Error(`Route was not registered: ${requestPath}`);
     await handler(request, response);
     return { status, headers, body: body ? JSON.parse(body) : undefined };
   }
   // Ignore startup logging in per-request no-write assertions.
   writes.length = 0;
   reads.length = 0;
-  return { ctx, hooks, routes, sections, registeredTools, dispatch, request, dnsCalls, writes, reads };
+  hostEffects.length = 0;
+  return {
+    ctx, hooks, routes, sections, registeredTools, dispatch, broadcast, request, dnsCalls, writes, reads, hostEffects,
+    settle: (config) => entry.namespace.testSettleInstalledPatches(config, ctx, { alive: true }),
+    autoApply: (config) => entry.namespace.testAutoApply(config),
+    command: (input) => entry.namespace.testHandlePurgeCommand(input, {}, ctx),
+  };
 }

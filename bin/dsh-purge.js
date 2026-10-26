@@ -2,12 +2,14 @@
 
 import * as core from "../lib/core.js";
 import * as rules from "../lib/rules.js";
+import { assertHostMutationAllowed, OFFICIAL_HOST_READ_ONLY_MESSAGE } from "../lib/compatibility-policy.js";
 
 const args = process.argv.slice(2);
 
 function printStatus(state) {
   const out = [];
   out.push("dsh-purge 状态 / Status");
+  out.push("兼容版：保留官方权限、沙箱与审批；宿主补丁和上游自更新已禁用。");
   out.push("  宿主 / surface " + (state.surface || "web"));
   out.push("  DSH_HOME      " + state.dsh_home);
   if (state.desktop_install) out.push("  桌面安装       " + state.desktop_install);
@@ -41,12 +43,18 @@ async function main() {
   if (mode === "--help" || args.includes("-h")) {
     console.log(`dsh-purge 用法:
   dsh-purge --status     显示状态
-  dsh-purge --apply      应用全部清洗（提示词+代码+shim+override）
-  dsh-purge --revert     回滚还原
-  dsh-purge --uninstall  卸载插件（已应用则先还原）
+  dsh-purge --apply      兼容版禁用：保留官方宿主与权限
+  dsh-purge --revert     兼容版禁用：保留官方宿主与权限
+  dsh-purge --uninstall  兼容版禁用：保留用户数据
   dsh-purge --edit       编辑注入文件 prompt-inject.md
-  dsh-purge --help       帮助`);
+  dsh-purge --help       帮助
+
+${OFFICIAL_HOST_READ_ONLY_MESSAGE}`);
     return;
+  }
+
+  if (["--apply", "--revert", "--uninstall"].includes(mode)) {
+    assertHostMutationAllowed();
   }
 
   const state = await core.gatherState();
@@ -137,11 +145,11 @@ async function main() {
     }
     console.log("  编辑完成后重启 dsh 生效。");
   } else {
-    console.log("默认不清洗，使用 --apply 应用清洗。");
+    console.log(OFFICIAL_HOST_READ_ONLY_MESSAGE);
   }
 }
 
 main().catch((e) => {
-  console.error("[dsh-purge] error:", e);
+  console.error(`[dsh-purge] ${e?.code || "error"}: ${e?.message || String(e)}`);
   process.exit(1);
 });

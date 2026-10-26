@@ -1,3 +1,11 @@
+# Official-permissions compatibility build — 1.1.78-compat.1
+
+This branch is based on `bde36403e909e4cf288e447de11f7a390c337480`. It retains the six admission-check removals and preserves official DSH permissions, sandboxing and approvals. Host patching, automatic reapply, upstream self-update and legacy uninstall are disabled. It does not include the separate prompt-control customization.
+
+Target: DSH desktop `0.2.1-rc.3`. All 63 isolated tests pass; this is not a claim of live client or model/tool success. Prompt seeding/saving behavior is unchanged, including possible replacement of custom text matching legacy markers. See [compatibility notes](docs/official-permissions-compatibility.md). The upstream documentation retained below includes installation, Apply, update and restore instructions that do not apply to this build.
+
+---
+
 <p align="center">
   <img src="docs/banner.svg" alt="dsh-purge" width="720">
 </p>
