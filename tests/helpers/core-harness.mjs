@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import realFs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
@@ -10,14 +11,41 @@ const root = process.env.DSH_PURGE_TEST_SOURCE_ROOT
 
 // Evaluate real core and policy only. Every filesystem/process/host dependency
 // is a throwing sentinel; even an unguarded baseline cannot reach the machine.
-export async function loadCore() {
+export async function loadCore({ persistenceRoot, defaultPrompt } = {}) {
   const touches = [];
   const unexpected = (name) => (...args) => {
     touches.push({ name, args });
     throw Object.assign(new Error(`Unexpected isolated boundary call: ${name}`), { code: 'TEST_BOUNDARY_TOUCHED' });
   };
-  const fsMethods = new Proxy({}, { get: (_target, key) => key === 'then' ? undefined : unexpected(`fs.${String(key)}`) });
-  const fakeFs = new Proxy({ promises: fsMethods, constants: {} }, {
+  const persistence = persistenceRoot ? realFs.realpathSync(persistenceRoot) : null;
+  const checkPath = (candidate) => {
+    const resolved = typeof candidate === 'string' ? path.resolve(candidate) : '';
+    if (!persistence || (resolved !== persistence && !resolved.startsWith(persistence + path.sep))) {
+      return unexpected('fs.outsidePersistenceRoot')(candidate);
+    }
+    return candidate;
+  };
+  const confined = (owner, key, pathCount = 1) => (...args) => {
+    for (let i = 0; i < pathCount; i++) checkPath(args[i]);
+    return owner[key](...args);
+  };
+  const asyncMethods = persistence ? Object.fromEntries(
+    ['readFile', 'writeFile', 'mkdir', 'unlink', 'rm', 'stat'].map((key) => [key, confined(realFs.promises, key)]),
+  ) : {};
+  if (persistence) {
+    asyncMethods.rename = confined(realFs.promises, 'rename', 2);
+    asyncMethods.open = async (...args) => {
+      checkPath(args[0]);
+      const handle = await realFs.promises.open(...args);
+      return { writeFile: (...values) => handle.writeFile(...values), sync: () => handle.sync(), close: () => handle.close() };
+    };
+  }
+  const fsMethods = new Proxy(asyncMethods, { get: (target, key) => key === 'then' ? undefined : key in target ? target[key] : unexpected(`fs.${String(key)}`) });
+  const syncMethods = persistence ? Object.fromEntries(
+    ['existsSync', 'readFileSync', 'writeFileSync', 'mkdirSync', 'unlinkSync', 'statSync', 'chmodSync'].map((key) => [key, confined(realFs, key)]),
+  ) : {};
+  if (persistence) syncMethods.renameSync = confined(realFs, 'renameSync', 2);
+  const fakeFs = new Proxy({ ...syncMethods, promises: fsMethods, constants: {} }, {
     get: (target, key) => key in target ? target[key] : unexpected(`fs.${String(key)}`),
   });
   const filename = path.join(root, 'lib/core.js');
@@ -44,7 +72,7 @@ export async function loadCore() {
     './surface.js': { adapterFor: () => 'web', detectSurface: () => 'web' },
     './host-clean.js': { hostPromptKeepsInject: unexpected('hostPromptKeepsInject') },
     './phase1-keep.js': { PHASE1_KEEP_EXPR: '', widenPhase1KeepFilter: unexpected('widenPhase1KeepFilter') },
-    './table-read.js': { openSlot: unexpected('openSlot') },
+    './table-read.js': { openSlot: typeof defaultPrompt === 'string' ? () => defaultPrompt : unexpected('openSlot') },
     './hooks-deny.js': namespaceSentinels('hooksDeny'),
   };
   const context = vm.createContext({

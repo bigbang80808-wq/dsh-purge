@@ -12,7 +12,7 @@ const identity = (value) => value;
 // The real index registration code and any network/compatibility modules run
 // inside this VM. Host modules, filesystem, DNS and timers cannot affect DSH.
 // Only an extra export is appended to index; no production logic is replaced.
-export async function loadPlugin({ allowText = 'owned.example\n' } = {}) {
+export async function loadPlugin({ allowText = 'owned.example\n', coreOverrides = {}, rulesOverrides = {} } = {}) {
   const dnsCalls = [];
   const writes = [];
   const reads = [];
@@ -72,9 +72,10 @@ export async function loadPlugin({ allowText = 'owned.example\n' } = {}) {
       ensureHostClean: hostEffect('core.ensureHostClean', { ok: true }),
       silenceCmdFlash: hostEffect('core.silenceCmdFlash', { ok: true, entry: '/synthetic/official' }),
       readOverrideForUi: () => ({ content: '', defaultContent: '' }),
+      ...coreOverrides,
     },
     './host.js': { currentSurface: () => 'test', restartNote: () => 'synthetic restart', scheduleRestart: hostEffect('host.scheduleRestart', { restarting: true }) },
-    './rules.js': { resolveInjectText: () => ({ text: '' }), writeLastCwd: noop },
+    './rules.js': { resolveInjectText: () => ({ text: '' }), writeLastCwd: noop, ...rulesOverrides },
     './skills.js': {},
     './update.js': { autoUpdateIfNeeded: hostEffect('update.autoUpdateIfNeeded', Promise.resolve({})) },
     './reapply.js': {

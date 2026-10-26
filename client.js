@@ -1610,7 +1610,7 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 							if (packed) setDefaultOverride(packed);
 							if (!promptSeededRef.current || !promptDirtyRef.current) {
 								promptSeededRef.current = true;
-								setOverride(shown || packed);
+								setOverride(shown);
 							}
 							setOverrideLoaded(true);
 						}
@@ -1773,7 +1773,7 @@ body:not([data-ds-dark-theme]) .dshp-auth-ops button.primary{background:var(--ds
 				apiJson("/dsh-purge/override", {
 					method: "POST",
 					headers: { "content-type": "application/json" },
-					body: JSON.stringify({ content: defaultOverride }),
+					body: JSON.stringify({ content: defaultOverride, resetDefault: true }),
 				})
 					.then((d) => {
 						if (ticket !== actionTicket.current) return;

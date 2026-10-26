@@ -56,3 +56,10 @@ throwing filesystem, child-process, archive and desktop sentinels. Representativ
 patch, revert, shim, extraction/restart and hooks-setting entry points must throw
 `OFFICIAL_HOST_READ_ONLY` before touching those boundaries. These sentinels also
 make baseline comparison safe: an unguarded original cannot access the real host.
+
+Prompt persistence tests opt into filesystem access confined to a fresh temporary
+home and use harmless synthetic bundled prompts. They execute the real core and
+HTTP routes, verify exact editor/disk round trips, and reload core in a new VM to
+test restart and default-version migration. Host/process boundaries remain
+throwing sentinels. These tests do not assert that a real browser textarea keeps
+CRLF line endings; browsers can normalize those before sending the saved string.

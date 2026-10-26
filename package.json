@@ -1,6 +1,6 @@
 {
   "name": "dsh-purge",
-  "version": "1.1.78-compat.1",
+  "version": "1.1.78-compat.2",
   "description": "dsh-purge compatibility build preserving official DSH permissions, sandbox and approvals; based on YuJunZhiXue/dsh-purge.",
   "type": "module",
   "main": "lib/index.js",
@@ -97,7 +97,7 @@
   "compatibility": {
     "mode": "official-permissions",
     "baseCommit": "bde36403e909e4cf288e447de11f7a390c337480",
-    "buildId": "official-permissions-20261027",
+    "buildId": "official-permissions-prompt-save-20261027",
     "hostPatching": false,
     "upstreamSelfUpdate": false
   }

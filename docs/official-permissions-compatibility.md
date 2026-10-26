@@ -1,17 +1,19 @@
 # Compatibility scope
 
 - Base: `bde36403e909e4cf288e447de11f7a390c337480`, six admission restrictions removed.
-- Build: `1.1.78-compat.1`, `official-permissions-20261027`.
+- Build: `1.1.78-compat.2`, `official-permissions-prompt-save-20261027`.
 - Target: official DeepSeek Harness desktop `0.2.1-rc.3`, bundled Cordis 4.0.5.
 - Attribution: [YuJunZhiXue/dsh-purge](https://github.com/YuJunZhiXue/dsh-purge).
 
 The compatibility policy is fixed in the package. UI, HTTP, commands, tools, core mutation APIs, updater, reapply and legacy uninstall cannot opt back into host patching. Official application files and session permission presets are not rewritten. Existing DSH_PERMISSION_MODE values are inherited. Upstream updates are disabled to prevent replacement of these protections.
 
-The prompt pipeline, prompt files, role presets, retry/continue and output behavior remain unchanged. Custom prompts containing legacy default markers may be reseeded. This is not a prompt-control fix. Remote model decisions, official tool approvals and network failures remain possible.
+Explicitly saved prompt text now takes precedence over legacy default-template fingerprints. The editor and HTTP responses preserve the stored string, including whitespace. A persistent explicit-save marker protects it across refresh and restart. Existing matching `customized: true` records are also respected. The Restore Default button explicitly releases that marker; unsaved old defaults still migrate. Deleted prompt files are seeded again.
+
+This change is limited to prompt storage and editor round trips. Model-injection normalization, built-in prompt text, role presets, retry/continue and output behavior remain unchanged. A browser textarea may normalize typed/pasted CRLF to LF before submission; the server preserves the submitted string. Remote model decisions, official tool approvals and network failures remain possible.
 
 ## Verification
 
-Run `node --experimental-vm-modules --test tests/*.test.mjs`. The 63 isolated tests cover the six gate removals, session permission preservation, HTTP/command/tool/startup guards and representative core write entry points. Real desktop loading, remote model responses and tool execution require separate live verification. See `tests/README.md` for isolated boundaries.
+Run `node --experimental-vm-modules --test tests/*.test.mjs`. Tests cover the six gate removals, session permission preservation, HTTP/command/tool/startup guards, representative core write entry points, and prompt save/read/refresh/restart/default-reset behavior. Prompt persistence tests use independent temporary directories and fresh module instances; they do not touch the real DSH profile. Real desktop loading, remote model responses and tool execution require separate live verification. See `tests/README.md` for isolated boundaries.
 
 ## Installation and rollback
 
