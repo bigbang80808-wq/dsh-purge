@@ -29,11 +29,17 @@
   <a href="README.md">English</a> | <a href="README.zh-CN.md">中文</a>
 </p>
 
+## Independent branch scope
+
+This branch starts from [YuJunZhiXue/dsh-purge commit af7cd22](https://github.com/YuJunZhiXue/dsh-purge/commit/af7cd22d5b3faec540e883239c55bde1620f718a). It removes six author-added admission restrictions: public-address filtering, rejection when no target is recognized, mandatory DNS checks, game-related keyword rejection, tool-argument scanning, and the obsolete allowlist requirement. The currently loaded prompt payload, output-length controls, host permissions, and other behavior remain outside this change. Removing these checks does not grant authorization to access a system.
+
+These are source changes only. The 25 isolated regression tests pass; this branch has not been installed or tested in a live Harness client. The installation instructions below describe the upstream project and have not been changed into a branch installation procedure. See [the change scope and compatibility notes](docs/six-restrictions-removal.md).
+
 ## A note from the author
 
 People have been selling this open-source work in the open. After that, the author was asked to come in and talk. No need to spell out the rest. Read between the lines.
 
-From now on the **public internet is closed**. The open-source build only allows **local lab IPs**: loopback and RFC1918. Domains are resolved first (including hosts); every answer must be private or loopback. A hosts trick that points `.lab` at a public IP, a failed lookup, or a mixed public answer is blocked. **Game cheats are forbidden** (aimbot, wallhack, memory edits against a game, anti-cheat bypass); the prompt and the session gate both stop them. This build does not ship the skill library or the knowledge base.
+The upstream baseline introduced local-lab address checks, mandatory domain resolution, and a game-keyword session gate. This independent branch removes those admission checks as described above. The currently loaded prompt payload is unchanged and may still express restrictions. The upstream removal of the bundled skill library and knowledge base is also unchanged.
 
 **The original build may not be resold.** Charging for it, skinning it, or hawking it in groups is not allowed. Forks are fine, but **you must attribute** and name the source: [YuJunZhiXue/dsh-purge](https://github.com/YuJunZhiXue/dsh-purge). Hide the source or pass it off as your own, and you are on the other side.
 
@@ -41,6 +47,7 @@ The author's personal channel: [t.me/LLM_PoJia](https://t.me/LLM_PoJia). Notes a
 
 ## Contents
 
+- [Independent branch scope](#independent-branch-scope)
 - [A note from the author](#a-note-from-the-author)
 - [What this is](#what-this-is)
 - [Attribution required](#attribution-required)
@@ -65,7 +72,7 @@ Harness does more than forward a prompt. It rewrites prompts, approval gates, sa
 |---|---|
 | **dsh-purge dock** | A button beside the session title opens the right dock. Two pages: Clean and Drill |
 | **Clean** | Grouped patch status, Apply / Restore / Uninstall, prompt editor, multiple rule sets |
-| **Drill** | Built into the stable release. After authorization: assets and the local environment. This build does not ship skills or the knowledge base. Local lab only |
+| **Drill** | Built into the stable release. After authorization: assets and the local environment. This branch does not restore the bundled skills or knowledge base; the six admission checks described above are removed |
 | **Host policy** | Default copy, permission policy, and tool limits. Official capabilities stay. No second invented identity |
 | **On start** | Checks and reapplies. After npm overwrites `node_modules`, you do not hand-edit files |
 
@@ -106,8 +113,8 @@ This repo is [Apache License 2.0](./LICENSE). Forks and redistributions must kee
 1. **This repository contains no illegal material.** The published code, docs, patches, and default prompt are **not** malware, backdoors, unauthorized pentest kits, ransomware, credential-stuffing scripts, or attack payloads aimed at the public internet or third-party systems. The project does not supply illegal content and does not incite, organize, or assist crime.
 2. **Local official Harness only.** Security-eval patches and prompt injection run only on the **official DeepSeek Harness already installed on the user's machine** (`@deepseek-ai` packages, local profile / `$DSH_HOME`). The target is the user's own official local software, **not** someone else's website, server, account, or information system.
 3. **Eval patches do not attack the public internet.** Apply, inject, revert, and uninstall stay in local files and local processes. They **do not scan, probe, intrude, or send attack traffic to any public host or unauthorized system**. Do not use this project as a jump host against the public internet. If "check for updates" is on, the plugin may only contact this plugin's own GitHub repository to compare versions. That is **not** an attack on third-party systems and is **not** authorization to penetrate anything.
-4. **Lawful, controlled scope.** This project is an aid for red-team research and robustness evaluation on an **official Harness the user is entitled to administer**. **Do not run it against targets without the owner's lawful written authorization, public online systems, or production workloads.** Testing must stay on the **authorized local official Harness, offline local synthetic fixtures, authorized cybersecurity ranges, and compliant lab environments**.
-5. **The open-source build is local-lab only.** Attack tasks only allow loopback and RFC1918 addresses. Domains are resolved, then judged by IP; suffixes are not an allow list. A public IP, a name that resolves public, a failed lookup, or a hosts entry that points a lab name at the public internet is not an exception. A key, a password, a network range, a wildcard, or a claim made in the conversation does not add an exception. Game cheats are forbidden. This build does not ship the skill library or the knowledge base.
+4. **Lawful, controlled scope.** This project is an aid for research and evaluation on an **official Harness the user is entitled to administer**. Users must obtain the system owner's authorization and comply with its target, time, and activity limits. The removal of a software admission check is not evidence of authorization, and a public or private address alone establishes no right to test a system.
+5. **This branch's admission behavior.** The six author-added checks listed in [Independent branch scope](#independent-branch-scope) are removed. The former allowlist is no longer an admission condition. This change does not alter the currently loaded prompt payload or provider policy, and does not restore the bundled skill library or knowledge base.
 6. **Forbidden uses.** Users must not use this project, directly or indirectly, to violate the following (each must be followed; no excuse to evade):
    - <font color="red"><strong>Criminal Law of the People's Republic of China</strong></font>
    - <font color="red"><strong>Cybersecurity Law of the People's Republic of China</strong></font>
@@ -388,9 +395,9 @@ The first time you open Drill you read the notice, wait out the countdown, scrol
 
 ![Patches](docs/preview/settings.png)
 
-**Local lab**
+**Admission checks**
 
-The open-source build only allows localhost/private nets. The Clean page says so. You cannot register a public host.
+This branch no longer presents local/private addresses or an author-maintained allowlist as admission conditions. The old allowlist API remains a compatibility endpoint: GET is read-only; POST returns HTTP 410 with an explicit retired response and does not pretend to save changes. Upstream screenshots may still show the old wording. See [compatibility details](docs/six-restrictions-removal.md).
 
 | Area | What it shows |
 |---|---|
@@ -399,7 +406,7 @@ The open-source build only allows localhost/private nets. The Clean page says so
 | Drill | assets and environment after authorization. This build does not ship skills or the knowledge base. The tab says Unauthorized until then |
 | Patches | grouped status, Apply, Restore, or Uninstall |
 | Prompt | edit `prompt-inject.md` as the session override |
-| Local lab | loopback / RFC1918 only; names are resolved, and every address must be private |
+| Admission checks | the six checks are retired; the old allowlist is not an access condition |
 | Rule sets | multiple `AGENTS.md` / `CLAUDE.md`; Enable writes under `$DSH_HOME`, Delete removes the row |
 
 ---
@@ -464,9 +471,9 @@ For routine tasks, you can also opt into Low reasoning for new sessions:
 
 Restart `dsh web` to load the profile. The model and reasoning defaults apply to newly created sessions; select Low in the composer for an existing session. The plugin does not change these model preferences automatically. Keep High when the task needs deeper reasoning, and narrow file searches rather than recursively scanning every application directory.
 
-### Local lab
+### Admission checks in this branch
 
-Attack tasks are denied by default. The open-source build only allows loopback and RFC1918 IPs. Names are resolved first; a `.lab` / `.htb` suffix is not enough. A hosts entry that points a lab name at a public IP is blocked. Saying “this is my server” in chat does not allow it.
+The removed checks no longer reject a turn for a public address, an unrecognized target, a DNS admission-check result, a game-related keyword, or scanned tool arguments. The obsolete allowlist no longer controls admission. Actual tools may still need DNS to connect, and other host, provider, prompt, and permission rules may still affect execution. Users remain responsible for authorization and scope. See [the exact change boundary](docs/six-restrictions-removal.md).
 
 ---
 
